@@ -67,16 +67,40 @@ export default function RootLayout({
                 — interval training
               </span>
             </div>
-            <span
-              style={{
-                fontFamily: '"JetBrains Mono", monospace',
-                fontSize: 9,
-                color: "rgb(197, 185, 168)",
-                letterSpacing: "0.12em",
-              }}
+            <a
+              href="https://tedgreene.com/teaching/default.asp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1"
+              style={{ textDecoration: "none" }}
             >
-              E · A · D · G · B · E
-            </span>
+              <span
+                style={{
+                  fontFamily: "Caveat, cursive",
+                  fontSize: 14,
+                  color: "rgb(154, 144, 128)",
+                  fontWeight: 400,
+                }}
+              >
+                Based on Ted Greene
+              </span>
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 12 12"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ color: "rgb(181, 168, 152)", flexShrink: 0 }}
+              >
+                <path
+                  d="M2 10L10 2M10 2H5M10 2V7"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
           </header>
 
           <main className="flex-1 w-full">{children}</main>
@@ -84,20 +108,55 @@ export default function RootLayout({
           <footer
             style={{
               borderTop: "1px solid rgba(122, 136, 96, 0.25)",
-              padding: "12px 56px 16px",
+              padding: "14px 20px",
               backgroundColor: "rgba(245, 242, 232, 0.92)",
-              textAlign: "center",
+              display: "flex",
+              flexWrap: "wrap" as const,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px 20px",
             }}
           >
-            <span
-              style={{
-                fontFamily: "Caveat, cursive",
-                fontSize: 13,
-                color: "rgb(154, 144, 128)",
-              }}
-            >
-              Practice identifying intervals in common guitar chord shapes
-            </span>
+            {[
+              { label: "@jkl.guitar", href: "https://instagram.com/jkl.guitar" },
+              { label: "@ravelforguitar", href: "https://youtube.com/@ravelforguitar" },
+              { label: "text2chordchart.com", href: "https://text2chordchart.com" },
+            ].map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  textDecoration: "none",
+                  fontFamily: "Caveat, cursive",
+                  fontSize: 14,
+                  color: "rgb(154, 144, 128)",
+                  fontWeight: 400,
+                }}
+              >
+                {label}
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ color: "rgb(181, 168, 152)", flexShrink: 0 }}
+                >
+                  <path
+                    d="M2 10L10 2M10 2H5M10 2V7"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </a>
+            ))}
           </footer>
         </div>
       </body>
