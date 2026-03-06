@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { chords, ChordInfo, getIntervalString } from "@/data/chords";
 import ChordDiagram from "./ChordDiagram";
 
@@ -15,15 +15,50 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 function generateOptions(correct: ChordInfo, all: ChordInfo[]): string[] {
   const correctStr = getIntervalString(correct.intervals);
-  const distractors = shuffleArray(
-    [...new Set(
-      all
-        .filter((c) => c.id !== correct.id)
-        .map((c) => getIntervalString(c.intervals))
-        .filter((s) => s !== correctStr)
-    )]
-  ).slice(0, 2); // 2 distractors → 3 total options
+  const correctIntervalSet = new Set(correct.intervals.filter((i) => i !== null));
+
+  // Score all other chords by similarity to the correct one
+  const candidates = all
+    .filter((c) => getIntervalString(c.intervals) !== correctStr)
+    .map((c) => {
+      const candidateIntervals = c.intervals.filter((i) => i !== null);
+      const candidateSet = new Set(candidateIntervals);
+      
+      // Calculate intersection (shared intervals)
+      let sharedCount = 0;
+      correctIntervalSet.forEach((interval) => {
+        if (candidateSet.has(interval)) sharedCount++;
+      });
+
+      // Complexity penalty (difference in number of notes)
+      const sizeDiff = Math.abs(correctIntervalSet.size - candidateSet.size);
+      
+      // Similarity score: more shared intervals is better, more size difference is worse
+      const score = sharedCount * 2 - sizeDiff;
+
+      return {
+        str: getIntervalString(c.intervals),
+        score,
+      };
+    });
+
+  // Unique interval strings only
+  const uniqueCandidates = Array.from(
+    new Map(candidates.map((c) => [c.str, c])).values()
+  );
+
+  // Sort by score descending and take the top N most similar
+  const sorted = uniqueCandidates.sort((a, b) => b.score - a.score);
+  
+  // Pick from the top 6 most similar distractors to maintain some variety
+  const topCandidates = sorted.slice(0, 6);
+  const distractors = shuffleArray(topCandidates).slice(0, 2).map(c => c.str);
+
   return shuffleArray([correctStr, ...distractors]);
+}
+
+function randomChord(): ChordInfo {
+  return chords[Math.floor(Math.random() * chords.length)];
 }
 
 type AnswerState = "idle" | "correct" | "wrong";
@@ -41,53 +76,31 @@ function nameFontSize(name: string): number {
   return 52;
 }
 
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
+function makeQuestion() {
+  const chord = randomChord();
+  return { chord, options: generateOptions(chord, chords) };
 }
 
 export default function QuizGame() {
-  const [deck, setDeck]               = useState<ChordInfo[]>([]);
-  const [index, setIndex]             = useState(0);
-  const [options, setOptions]         = useState<string[]>([]);
+  const [{ chord: current, options }, setQuestion] = useState(makeQuestion);
+  const [questionNum, setQuestionNum] = useState(1);
   const [selected, setSelected]       = useState<string | null>(null);
   const [answerState, setAnswerState] = useState<AnswerState>("idle");
   const [score, setScore]             = useState(0);
-  const [gameOver, setGameOver]       = useState(false);
-
-  const startNewGame = useCallback(() => {
-    const shuffled = shuffleArray(chords);
-    setDeck(shuffled);
-    setIndex(0);
-    setScore(0);
-    setSelected(null);
-    setAnswerState("idle");
-    setGameOver(false);
-    setOptions(generateOptions(shuffled[0], chords));
-  }, []);
-
-  useEffect(() => { startNewGame(); }, [startNewGame]);
-
-  useEffect(() => {
-    if (deck.length > 0 && index < deck.length) {
-      setOptions(generateOptions(deck[index], chords));
-      setSelected(null);
-      setAnswerState("idle");
-    }
-  }, [index, deck]);
+  const [total, setTotal]             = useState(0);
 
   const advance = useCallback(() => {
-    if (index + 1 >= deck.length) {
-      setGameOver(true);
-    } else {
-      setIndex((i) => i + 1);
-    }
-  }, [index, deck.length]);
+    setQuestion(makeQuestion());
+    setSelected(null);
+    setAnswerState("idle");
+    setQuestionNum((n) => n + 1);
+  }, []);
 
   const handleSelect = (option: string) => {
     if (answerState !== "idle") return;
-    const current = deck[index];
     const correct = getIntervalString(current.intervals);
     setSelected(option);
+    setTotal((t) => t + 1);
     if (option === correct) {
       setAnswerState("correct");
       setScore((s) => s + 1);
@@ -98,85 +111,13 @@ export default function QuizGame() {
     }
   };
 
-  if (deck.length === 0) {
-    return (
-      <div className="text-center py-16" style={{
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 11, color: MUTED, letterSpacing: "0.14em",
-      }}>
-        LOADING...
-      </div>
-    );
-  }
-
-  if (gameOver) {
-    const pct = Math.round((score / deck.length) * 100);
-    const message =
-      pct >= 90 ? "Excellent. You know your intervals cold."
-      : pct >= 70 ? "Great job. Keep practicing."
-      : pct >= 50 ? "Good effort. A bit more study will help."
-      : "Keep at it — practice makes perfect.";
-    const barColor = pct >= 70 ? BLUE : pct >= 50 ? "rgb(180, 140, 60)" : "rgb(200, 60, 60)";
-
-    return (
-      <div className="flex flex-col items-center gap-6 py-12 px-8 md:px-24 lg:px-40 text-center">
-        <div>
-          <div style={{
-            fontFamily: "'Playfair Display', Georgia, serif",
-            fontWeight: 900, fontSize: 80, color: BLUE,
-            lineHeight: 1, letterSpacing: "-0.02em",
-          }}>
-            {score}/{deck.length}
-          </div>
-          <div style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10, color: "rgb(154, 144, 128)",
-            letterSpacing: "0.18em", textTransform: "uppercase" as const, marginTop: 6,
-          }}>
-            {pct}% correct
-          </div>
-        </div>
-
-        <div style={{ width: "100%", height: 1, backgroundColor: "rgba(122, 136, 96, 0.25)" }} />
-
-        <div style={{ width: "100%", height: 3, backgroundColor: "rgba(122, 136, 96, 0.15)", borderRadius: 99 }}>
-          <div style={{
-            height: "100%", borderRadius: 99,
-            width: `${pct}%`, backgroundColor: barColor,
-            transition: "width 0.6s ease",
-          }} />
-        </div>
-
-        <div style={{ fontFamily: "Caveat, cursive", fontSize: 20, color: "rgb(122, 136, 96)" }}>
-          {message}
-        </div>
-
-        <button
-          onClick={startNewGame}
-          style={{
-            marginTop: 8,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11, fontWeight: 600, letterSpacing: "0.1em",
-            padding: "12px 36px", borderRadius: 100,
-            border: `1.5px solid ${BLUE}`,
-            backgroundColor: BLUE, color: CREAM,
-            cursor: "pointer", transition: "opacity 0.15s",
-            textTransform: "uppercase" as const,
-          }}
-        >
-          Play Again
-        </button>
-      </div>
-    );
-  }
-
-  const current       = deck[index];
   const correctAnswer = getIntervalString(current.intervals);
   const revealed      = answerState !== "idle";
 
   // Key changes when chord changes (enter anim) OR when correct (correct anim)
-  const chordAnimKey  = answerState === "correct" ? `${index}-correct` : `${index}`;
+  const chordAnimKey   = answerState === "correct" ? `${questionNum}-correct` : `${questionNum}`;
   const chordAnimClass = answerState === "correct" ? "animate-chord-correct" : "animate-chord-enter";
+  const pct            = total > 0 ? Math.round((score / total) * 100) : 100;
 
   return (
     <div className="flex flex-col gap-3 px-5 py-5">
@@ -208,7 +149,7 @@ export default function QuizGame() {
           </div>
         </div>
 
-        {/* Score + counter bento card */}
+        {/* Score + accuracy bento card */}
         <div style={{
           borderRadius: 16,
           border: "1px solid rgba(122, 136, 96, 0.22)",
@@ -233,26 +174,16 @@ export default function QuizGame() {
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 14, fontWeight: 600, color: BLUE,
           }}>
-            {score}/{index + (answerState === "correct" ? 1 : 0)}
+            {score}/{total}
           </div>
           <div style={{ width: "60%", height: 1, backgroundColor: "rgba(122, 136, 96, 0.2)", margin: "3px 0" }} />
           <div style={{
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 10, color: "rgb(154, 144, 128)", letterSpacing: "0.12em",
           }}>
-            {pad(index + 1)}<span style={{ color: "rgba(154, 144, 128, 0.4)", margin: "0 3px" }}>/</span>{pad(deck.length)}
+            {pct}%
           </div>
         </div>
-      </div>
-
-      {/* Progress bar */}
-      <div style={{ height: 2, backgroundColor: "rgba(122, 136, 96, 0.13)", borderRadius: 99 }}>
-        <div style={{
-          height: "100%", borderRadius: 99,
-          backgroundColor: "rgba(122, 136, 96, 0.55)",
-          width: `${(index / deck.length) * 100}%`,
-          transition: "width 0.5s ease",
-        }} />
       </div>
 
       {/* Main bento row: diagram card + answer cards */}
@@ -386,12 +317,20 @@ export default function QuizGame() {
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {[
-            { label: "1",  desc: "Root" },
-            { label: "b3", desc: "Minor 3rd" },
-            { label: "3",  desc: "Major 3rd" },
-            { label: "5",  desc: "Perfect 5th" },
-            { label: "b7", desc: "Minor 7th" },
-            { label: "7",  desc: "Major 7th" },
+            { label: "1",   desc: "Root" },
+            { label: "b3",  desc: "Minor 3rd" },
+            { label: "3",   desc: "Major 3rd" },
+            { label: "4",   desc: "Perfect 4th" },
+            { label: "b5",  desc: "Diminished 5th" },
+            { label: "5",   desc: "Perfect 5th" },
+            { label: "b7",  desc: "Minor 7th" },
+            { label: "bb7", desc: "Diminished 7th" },
+            { label: "7",   desc: "Major 7th" },
+            { label: "b9",  desc: "Minor 9th" },
+            { label: "9",   desc: "Major 9th" },
+            { label: "11",  desc: "Perfect 11th" },
+            { label: "13",  desc: "Major 13th" },
+            { label: "#5",  desc: "Augmented 5th" },
           ].map(({ label, desc }) => (
             <div key={label} className="flex items-center gap-1.5">
               <span style={{
