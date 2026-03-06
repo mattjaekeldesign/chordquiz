@@ -22,20 +22,37 @@ function generateOptions(correct: ChordInfo, all: ChordInfo[]): string[] {
         .map((c) => getIntervalString(c.intervals))
         .filter((s) => s !== correctStr)
     )]
-  ).slice(0, 3);
+  ).slice(0, 2); // 2 distractors → 3 total options
   return shuffleArray([correctStr, ...distractors]);
 }
 
 type AnswerState = "idle" | "correct" | "wrong";
 
+const BLUE  = "rgb(26, 58, 255)";
+const CREAM = "rgb(245, 242, 232)";
+const OLIVE = "rgba(122, 136, 96, 0.4)";
+const DARK  = "rgb(42, 40, 32)";
+const MUTED = "rgb(192, 184, 168)";
+
+function nameFontSize(name: string): number {
+  if (name.length <= 1) return 88;
+  if (name.length <= 2) return 76;
+  if (name.length <= 3) return 64;
+  return 52;
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
 export default function QuizGame() {
-  const [deck, setDeck] = useState<ChordInfo[]>([]);
-  const [index, setIndex] = useState(0);
-  const [options, setOptions] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [deck, setDeck]               = useState<ChordInfo[]>([]);
+  const [index, setIndex]             = useState(0);
+  const [options, setOptions]         = useState<string[]>([]);
+  const [selected, setSelected]       = useState<string | null>(null);
   const [answerState, setAnswerState] = useState<AnswerState>("idle");
-  const [score, setScore] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
+  const [score, setScore]             = useState(0);
+  const [gameOver, setGameOver]       = useState(false);
 
   const startNewGame = useCallback(() => {
     const shuffled = shuffleArray(chords);
@@ -48,9 +65,7 @@ export default function QuizGame() {
     setOptions(generateOptions(shuffled[0], chords));
   }, []);
 
-  useEffect(() => {
-    startNewGame();
-  }, [startNewGame]);
+  useEffect(() => { startNewGame(); }, [startNewGame]);
 
   useEffect(() => {
     if (deck.length > 0 && index < deck.length) {
@@ -70,11 +85,9 @@ export default function QuizGame() {
 
   const handleSelect = (option: string) => {
     if (answerState !== "idle") return;
-
     const current = deck[index];
     const correct = getIntervalString(current.intervals);
     setSelected(option);
-
     if (option === correct) {
       setAnswerState("correct");
       setScore((s) => s + 1);
@@ -87,36 +100,69 @@ export default function QuizGame() {
 
   if (deck.length === 0) {
     return (
-      <div className="text-slate-400 text-center py-16">Loading...</div>
+      <div className="text-center py-16" style={{
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 11, color: MUTED, letterSpacing: "0.14em",
+      }}>
+        LOADING...
+      </div>
     );
   }
 
   if (gameOver) {
     const pct = Math.round((score / deck.length) * 100);
+    const message =
+      pct >= 90 ? "Excellent. You know your intervals cold."
+      : pct >= 70 ? "Great job. Keep practicing."
+      : pct >= 50 ? "Good effort. A bit more study will help."
+      : "Keep at it — practice makes perfect.";
+    const barColor = pct >= 70 ? BLUE : pct >= 50 ? "rgb(180, 140, 60)" : "rgb(200, 60, 60)";
+
     return (
-      <div className="flex flex-col items-center gap-6 py-10 px-4 text-center">
-        <div className="text-6xl font-bold text-amber-400">{score}/{deck.length}</div>
-        <div className="text-xl text-slate-300">
-          {pct >= 90
-            ? "Excellent! You know your intervals cold."
-            : pct >= 70
-            ? "Great job! Keep practicing."
-            : pct >= 50
-            ? "Good effort! A bit more study will help."
-            : "Keep at it — practice makes perfect!"}
+      <div className="flex flex-col items-center gap-6 py-12 px-8 md:px-24 lg:px-40 text-center">
+        <div>
+          <div style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontWeight: 900, fontSize: 80, color: BLUE,
+            lineHeight: 1, letterSpacing: "-0.02em",
+          }}>
+            {score}/{deck.length}
+          </div>
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10, color: "rgb(154, 144, 128)",
+            letterSpacing: "0.18em", textTransform: "uppercase" as const, marginTop: 6,
+          }}>
+            {pct}% correct
+          </div>
         </div>
-        <div className="w-64 h-3 bg-slate-700 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${pct}%`,
-              background: pct >= 70 ? "#22c55e" : pct >= 50 ? "#eab308" : "#ef4444",
-            }}
-          />
+
+        <div style={{ width: "100%", height: 1, backgroundColor: "rgba(122, 136, 96, 0.25)" }} />
+
+        <div style={{ width: "100%", height: 3, backgroundColor: "rgba(122, 136, 96, 0.15)", borderRadius: 99 }}>
+          <div style={{
+            height: "100%", borderRadius: 99,
+            width: `${pct}%`, backgroundColor: barColor,
+            transition: "width 0.6s ease",
+          }} />
         </div>
+
+        <div style={{ fontFamily: "Caveat, cursive", fontSize: 20, color: "rgb(122, 136, 96)" }}>
+          {message}
+        </div>
+
         <button
           onClick={startNewGame}
-          className="mt-4 px-8 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-xl text-lg transition-colors"
+          style={{
+            marginTop: 8,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11, fontWeight: 600, letterSpacing: "0.1em",
+            padding: "12px 36px", borderRadius: 100,
+            border: `1.5px solid ${BLUE}`,
+            backgroundColor: BLUE, color: CREAM,
+            cursor: "pointer", transition: "opacity 0.15s",
+            textTransform: "uppercase" as const,
+          }}
         >
           Play Again
         </button>
@@ -124,132 +170,244 @@ export default function QuizGame() {
     );
   }
 
-  const current = deck[index];
+  const current       = deck[index];
   const correctAnswer = getIntervalString(current.intervals);
-  const revealed = answerState !== "idle";
+  const revealed      = answerState !== "idle";
+
+  // Key changes when chord changes (enter anim) OR when correct (correct anim)
+  const chordAnimKey  = answerState === "correct" ? `${index}-correct` : `${index}`;
+  const chordAnimClass = answerState === "correct" ? "animate-chord-correct" : "animate-chord-enter";
 
   return (
-    <div className="flex flex-col items-center gap-6 px-4 py-6 max-w-lg mx-auto">
-      {/* Progress bar + score */}
-      <div className="w-full flex items-center justify-between text-sm text-slate-400">
-        <span>
-          Question <span className="text-white font-semibold">{index + 1}</span> of{" "}
-          <span className="text-white font-semibold">{deck.length}</span>
-        </span>
-        <span>
-          Score{" "}
-          <span className="text-amber-400 font-bold">
-            {score}/{index + (answerState === "correct" ? 1 : 0)}
-          </span>
-        </span>
-      </div>
+    <div className="flex flex-col gap-3 px-5 py-5">
 
-      <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+      {/* Top row: chord name card + score card */}
+      <div className="flex items-stretch gap-3">
+
+        {/* Chord name — no card */}
         <div
-          className="h-full bg-amber-500 rounded-full transition-all duration-500"
-          style={{ width: `${((index) / deck.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Chord name + prompt */}
-      <div className="text-center">
-        <div className="text-5xl font-bold text-amber-400 tracking-tight mb-1">
-          {current.name}
-        </div>
-        <div className="text-slate-400 text-sm">
-          What are the intervals for each string?
-        </div>
-      </div>
-
-      {/* Chord diagram */}
-      <ChordDiagram
-        strings={current.strings}
-        intervals={current.intervals}
-        showIntervals={revealed}
-      />
-
-      {/* Feedback message */}
-      <div className="h-7 flex items-center justify-center">
-        {answerState === "correct" && (
-          <div className="flex items-center gap-2 text-green-400 font-semibold text-base animate-fade-in">
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Correct!
+          key={chordAnimKey}
+          className={`${chordAnimClass} flex-1 min-w-0`}
+          style={{ padding: "4px 0" }}
+        >
+          <div style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontWeight: 900,
+            fontSize: nameFontSize(current.name),
+            color: "#1C1A16",
+            letterSpacing: "-0.02em",
+            lineHeight: 1,
+          }}>
+            {current.name}
           </div>
-        )}
-        {answerState === "wrong" && (
-          <div className="flex items-center gap-2 text-red-400 font-semibold text-base animate-fade-in">
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            Not quite — see the correct answer below
+          <div style={{
+            fontFamily: "Caveat, cursive",
+            fontSize: 15, color: "rgb(122, 136, 96)", marginTop: 6,
+          }}>
+            What are the intervals?
           </div>
-        )}
+        </div>
+
+        {/* Score + counter bento card */}
+        <div style={{
+          borderRadius: 16,
+          border: "1px solid rgba(122, 136, 96, 0.22)",
+          backgroundColor: "rgba(122, 136, 96, 0.03)",
+          padding: "16px 20px",
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 4,
+          minWidth: 88,
+        }}>
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 7, letterSpacing: "0.2em",
+            color: "rgb(154, 144, 128)", textTransform: "uppercase" as const,
+          }}>
+            SCORE
+          </div>
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 14, fontWeight: 600, color: BLUE,
+          }}>
+            {score}/{index + (answerState === "correct" ? 1 : 0)}
+          </div>
+          <div style={{ width: "60%", height: 1, backgroundColor: "rgba(122, 136, 96, 0.2)", margin: "3px 0" }} />
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10, color: "rgb(154, 144, 128)", letterSpacing: "0.12em",
+          }}>
+            {pad(index + 1)}<span style={{ color: "rgba(154, 144, 128, 0.4)", margin: "0 3px" }}>/</span>{pad(deck.length)}
+          </div>
+        </div>
       </div>
 
-      {/* Answer options */}
-      <div className="w-full flex flex-col gap-3">
-        {options.map((option, i) => {
-          const isCorrect = option === correctAnswer;
-          const isSelected = option === selected;
+      {/* Progress bar */}
+      <div style={{ height: 2, backgroundColor: "rgba(122, 136, 96, 0.13)", borderRadius: 99 }}>
+        <div style={{
+          height: "100%", borderRadius: 99,
+          backgroundColor: "rgba(122, 136, 96, 0.55)",
+          width: `${(index / deck.length) * 100}%`,
+          transition: "width 0.5s ease",
+        }} />
+      </div>
 
-          let bg = "bg-slate-800 border-slate-600 text-slate-100 hover:bg-slate-700 hover:border-slate-500";
-          if (revealed) {
-            if (isCorrect) {
-              bg = "bg-green-900/60 border-green-500 text-green-300";
-            } else if (isSelected && !isCorrect) {
-              bg = "bg-red-900/60 border-red-500 text-red-300";
-            } else {
-              bg = "bg-slate-800/50 border-slate-700 text-slate-500";
+      {/* Main bento row: diagram card + answer cards */}
+      <div className="flex flex-col md:flex-row gap-3">
+
+        {/* Diagram — no card */}
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+          flexShrink: 0,
+          padding: 12,
+        }}>
+          <ChordDiagram
+            strings={current.strings}
+            intervals={current.intervals}
+            showIntervals={revealed}
+          />
+          {/* Feedback */}
+          <div style={{ height: 26, display: "flex", alignItems: "center" }}>
+            {answerState === "correct" && (
+              <div className="flex items-center gap-2 animate-fade-in" style={{
+                fontFamily: "Caveat, cursive", fontSize: 18, color: "rgb(60, 140, 90)",
+              }}>
+                <svg style={{ width: 16, height: 16 }} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Correct!
+              </div>
+            )}
+            {answerState === "wrong" && (
+              <div className="flex items-center gap-2 animate-fade-in" style={{
+                fontFamily: "Caveat, cursive", fontSize: 18, color: "rgb(180, 60, 60)",
+              }}>
+                <svg style={{ width: 16, height: 16 }} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                Not quite — see answer
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Answer cards: row on mobile, stacked col on desktop */}
+        <div className="flex flex-row md:flex-col gap-3 flex-1">
+          {options.map((option, i) => {
+            const isCorrect  = option === correctAnswer;
+            const isSelected = option === selected;
+
+            let borderColor = OLIVE;
+            let bgColor     = "transparent";
+            let textColor   = DARK;
+            let fontWeight  = 400;
+
+            if (revealed) {
+              if (isCorrect) {
+                borderColor = BLUE;
+                bgColor     = BLUE;
+                textColor   = CREAM;
+                fontWeight  = 600;
+              } else if (isSelected && !isCorrect) {
+                borderColor = "rgba(180, 60, 60, 0.5)";
+                bgColor     = "rgba(180, 60, 60, 0.06)";
+                textColor   = "rgb(180, 60, 60)";
+              } else {
+                borderColor = "rgba(122, 136, 96, 0.2)";
+                textColor   = MUTED;
+              }
             }
-          }
 
-          return (
-            <button
-              key={i}
-              onClick={() => handleSelect(option)}
-              disabled={revealed}
-              className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 font-mono text-base font-semibold transition-all duration-200 cursor-pointer disabled:cursor-default ${bg}`}
-            >
-              <span className="tracking-wide">{option}</span>
-              {revealed && isCorrect && (
-                <svg className="w-5 h-5 text-green-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              )}
-              {revealed && isSelected && !isCorrect && (
-                <svg className="w-5 h-5 text-red-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              )}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={i}
+                onClick={() => handleSelect(option)}
+                disabled={revealed}
+                className={!revealed ? "answer-btn" : ""}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  padding: "12px 10px",
+                  borderRadius: 14,
+                  border: `1.5px solid ${borderColor}`,
+                  backgroundColor: bgColor,
+                  color: textColor,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 13,
+                  fontWeight,
+                  letterSpacing: "0.04em",
+                  cursor: revealed ? "default" : "pointer",
+                  transition: "border-color 0.15s, background-color 0.15s, color 0.15s, transform 0.12s, box-shadow 0.12s",
+                  outline: "none",
+                  textAlign: "center" as const,
+                  lineHeight: 1.5,
+                  minHeight: 60,
+                }}
+              >
+                <span>{option}</span>
+                {revealed && isCorrect && (
+                  <svg style={{ width: 14, height: 14 }} viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                )}
+                {revealed && isSelected && !isCorrect && (
+                  <svg style={{ width: 14, height: 14 }} viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Interval legend */}
-      <div className="w-full bg-slate-800/50 rounded-xl p-3 border border-slate-700">
-        <div className="text-xs text-slate-500 font-semibold uppercase tracking-widest mb-2">
-          Interval Guide
+      {/* Interval guide bento card */}
+      <div style={{
+        borderRadius: 14,
+        border: "1px solid rgba(122, 136, 96, 0.2)",
+        padding: "12px 20px",
+        backgroundColor: "rgba(122, 136, 96, 0.03)",
+      }}>
+        <div style={{
+          fontFamily: "Caveat, cursive",
+          fontSize: 12, color: "rgb(154, 144, 128)", marginBottom: 8,
+        }}>
+          interval guide
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
           {[
-            { label: "1", desc: "Root" },
+            { label: "1",  desc: "Root" },
             { label: "b3", desc: "Minor 3rd" },
-            { label: "3", desc: "Major 3rd" },
-            { label: "5", desc: "Perfect 5th" },
+            { label: "3",  desc: "Major 3rd" },
+            { label: "5",  desc: "Perfect 5th" },
             { label: "b7", desc: "Minor 7th" },
-            { label: "7", desc: "Major 7th" },
+            { label: "7",  desc: "Major 7th" },
           ].map(({ label, desc }) => (
-            <div
-              key={label}
-              className="flex items-center gap-1 text-xs text-slate-400"
-            >
-              <span className="font-mono font-bold text-amber-400 bg-slate-700 px-1.5 py-0.5 rounded">
+            <div key={label} className="flex items-center gap-1.5">
+              <span style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11, fontWeight: 600, color: BLUE,
+                backgroundColor: "rgba(26, 58, 255, 0.08)",
+                padding: "2px 7px", borderRadius: 4,
+              }}>
                 {label}
               </span>
-              <span>{desc}</span>
+              <span style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 10, color: "rgb(154, 144, 128)",
+              }}>
+                {desc}
+              </span>
             </div>
           ))}
         </div>

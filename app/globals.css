@@ -4,22 +4,62 @@
 
 @layer base {
   html {
-    background-color: #0f172a;
+    background-color: #F5F2E8;
   }
 
   body {
-    @apply bg-slate-900 text-slate-100 antialiased;
+    @apply antialiased;
+    background-color: #F5F2E8;
+    color: #1C1A16;
     min-height: 100vh;
   }
 }
 
 @layer utilities {
+  .answer-btn:hover {
+    border-color: rgba(26, 58, 255, 0.45) !important;
+    background-color: rgba(26, 58, 255, 0.04) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(26, 58, 255, 0.08);
+  }
+
+  .answer-btn:active {
+    transform: translateY(0px) scale(0.98);
+    box-shadow: none;
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.2s ease-in;
   }
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Plays when a new chord enters */
+  .animate-chord-enter {
+    animation: chordEnter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes chordEnter {
+    0%   { opacity: 0; transform: translateY(22px) scale(0.82); }
+    65%  { opacity: 1; transform: translateY(-6px)  scale(1.05); }
+    82%  { transform: translateY(2px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Plays when the user answers correctly */
+  .animate-chord-correct {
+    animation: chordCorrect 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  @keyframes chordCorrect {
+    0%   { transform: scale(1)    rotate(0deg);   color: #1C1A16; }
+    18%  { transform: scale(1.32) rotate(-4deg);  color: #1A3AFF; }
+    38%  { transform: scale(1.28) rotate(2.5deg); color: #1A3AFF; }
+    58%  { transform: scale(1.14) rotate(-1.5deg); }
+    78%  { transform: scale(1.05) rotate(0.5deg); }
+    100% { transform: scale(1)    rotate(0deg);   color: #1C1A16; }
   }
 }
