@@ -142,23 +142,23 @@ export default function ChordDiagram({
             }
 
             if (fret === 0) {
-              // Open string — blue circle outline
+              // Open string — dark circle outline
               return (
                 <circle
                   key={`mk-${i}`}
                   cx={x} cy={MARKER_Y} r={8}
                   fill="none"
-                  stroke="#1A3AFF"
+                  stroke="#2A2820"
                   strokeWidth={1.5}
                 />
               );
             }
 
-            // Fretted note — blue filled dot
+            // Fretted note — dark filled dot
             const dy = dotY(fret);
             return (
               <g key={`mk-${i}`}>
-                <circle cx={x} cy={dy} r={11} fill="#1A3AFF" />
+                <circle cx={x} cy={dy} r={11} fill="#2A2820" />
                 {showIntervals && intervals[i] && (
                   <text
                     x={x}
@@ -206,7 +206,7 @@ export default function ChordDiagram({
                 style={{
                   width: STR_SPACING,
                   fontFamily: "'JetBrains Mono', monospace",
-                  color: fret === null ? "#B0A898" : "#1A3AFF",
+                  color: fret === null ? "#B0A898" : "#2A2820",
                 }}
               >
                 {fret === null ? "x" : fret === 0 ? (intervals[i] ?? "?") : ""}
